@@ -3,6 +3,7 @@
 namespace GlobalPayments\Api;
 
 use GlobalPayments\Api\Entities\Exceptions\ConfigurationException;
+use GlobalPayments\Api\Entities\Enums\Environment;
 
 class ServicesConfig
 {
@@ -25,14 +26,41 @@ class ServicesConfig
     public $channel;
     public $hostedPaymentConfig;
 
+    /**
+     * @var string
+     */
+    public $challengeNoticiationUrl;
+
+    /**
+     * @var string
+     */
+    public $merchantContactUrl;
+
+    /**
+     * @var string
+     */
+    public $methodNotificationUrl;
+
+    /**
+     * @var Secure3dVersion
+     */
+    public $secure3dVersion;
+
     // Common
     public $curlOptions;
+
+    /**
+     * @var Environment
+     */
+
+    public $environment;
     public $serviceUrl;
     public $timeout;
 
     public function __construct()
     {
         $this->timeout = 65000;
+        $this->environment = Environment::TEST;
     }
 
     public function validate()
@@ -90,6 +118,19 @@ class ServicesConfig
             throw new ConfigurationException(
                 "Service URL could not be determined form the credentials provided. Please specify an endpoint."
             );
+        }
+
+        // secure 3d
+        if ($this->secure3dVersion != null) {
+            if ($this->secure3dVersion === Secure3dVersion::TWO || $this->secure3dVersion === Secure3dVersion::ANY) {
+                if (empty($this->challengeNoticiationUrl)) {
+                    throw new ConfigurationException("The challenge notification URL is required for 3DS v2 processing.");
+                }
+
+                if (empty($this->methodNotificationUrl)) {
+                    throw new ConfigurationException("The method notification URL is required for 3DS v2 processing.");
+                }
+            }
         }
     }
 }

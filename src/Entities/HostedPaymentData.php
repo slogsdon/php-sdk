@@ -19,7 +19,7 @@ class HostedPaymentData
     /**
      * Determines the challenge request preference for 3DS 2.0.
      * 
-     * @var ChallengeRequest
+     * @var ChallengeRequestIndicator
      */
     public $challengeRequest;
 

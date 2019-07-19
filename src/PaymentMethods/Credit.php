@@ -57,6 +57,11 @@ abstract class Credit implements
      */
     public $cardType;
 
+    /** @var bool */
+    public $isFleet;
+
+    /** @return boolean */
+
     /**
      * Authorizes the payment method
      *

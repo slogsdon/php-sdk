@@ -18,7 +18,7 @@ abstract class RestGateway extends Gateway
      * @param array<string,string>|null $queryStringParams
      *
      * @throws GatewayException
-     * @return GatewayResponse
+     * @return string
      */
     protected function doTransaction(
         $verb,

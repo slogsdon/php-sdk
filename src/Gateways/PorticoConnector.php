@@ -665,7 +665,7 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
                 }
                 if ($builder->searchBuilder->settlementAmount !== null) {
                     $criteria->appendChild($xml->createElement(
-                        'SettlementAmount',
+                        'SettlementAmt',
                         $builder->searchBuilder->settlementAmount
                     ));
                 }
