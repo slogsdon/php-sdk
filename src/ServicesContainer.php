@@ -8,9 +8,11 @@ use GlobalPayments\Api\Gateways\IRecurringService;
 use GlobalPayments\Api\Gateways\PayPlanConnector;
 use GlobalPayments\Api\Gateways\PorticoConnector;
 use GlobalPayments\Api\Gateways\RealexConnector;
+use GlobalPayments\Api\Gateways\ISecure3dProvider;
 use GlobalPayments\Api\Entities\Enums\Environment;
 use GlobalPayments\Api\Entities\Enums\Secure3dVersion;
 use GlobalPayments\Api\Entities\Enums\ServiceEndpoints;
+use GlobalPayments\Api\Entities\Exceptions\ConfigurationException;
 
 class ServicesContainer
 {
@@ -24,8 +26,8 @@ class ServicesContainer
     private static $instance;
 
     /** @return ISecure3dProvider */
-    private function getSecure3dProvider(Secure3dVersion $version) {
-        if (in_array($version, $this->secure3dProviders)) {
+    private function getSecure3dProvider($version) {
+        if (!empty($this->secure3dProviders[$version])) {
             return $this->secure3dProviders[$version];
         } else if ($version == Secure3dVersion::ANY) {
             $provider = $this->secure3dProviders[Secure3dVersion::TWO];
@@ -38,7 +40,7 @@ class ServicesContainer
     }
 
     /** @return void */
-    private function setSecure3dProvider(Secure3dVersion $version, ISecure3dProvider $provider) {
+    private function setSecure3dProvider($version, ISecure3dProvider $provider) {
         $this->secure3dProviders[$version] = $provider;
     }
 
@@ -77,11 +79,11 @@ class ServicesContainer
      */
     public static function configure(ServicesConfig $config)
     {
-        $config->validate();
+        // $config->validate();
 
         $gateway = null;
-        if (isset($config->merchantId) && !empty($config->merchantId)) {
-            if (isset($config->serviceUrl) && !empty($config->serviceUrl)) {
+        if (!empty($config->merchantId)) {
+            if (empty($config->serviceUrl)) {
                 if ($config->environment === Environment::TEST) {
                     $config->serviceUrl = ServiceEndpoints::GLOBAL_ECOM_TEST;
                 } else {
@@ -109,7 +111,7 @@ class ServicesContainer
 
             // secure 3d v1
             if ($config->secure3dVersion === Secure3dVersion::ONE || $config->secure3dVersion === Secure3dVersion::ANY) {
-                self::setSecure3dProvider(Secure3dVersion::ONE, $gateway);
+                static::$instance->setSecure3dProvider(Secure3dVersion::ONE, $gateway);
             }
 
             // secure 3d v2
@@ -121,12 +123,11 @@ class ServicesContainer
                 $secure3d2->serviceUrl = $config->environment == Environment::TEST ? ServiceEndpoints::THREE_DS_AUTH_TEST : ServiceEndpoints::THREE_DS_AUTH_PRODUCTION;
                 $secure3d2->setMerchantContactUrl($config->merchantContactUrl);
                 $secure3d2->setMethodNotificationUrl($config->methodNotificationUrl);
-                $secure3d2->setChallengeNotificationUrl($config->challengeNoticiationUrl);
+                $secure3d2->setChallengeNotificationUrl($config->challengeNotificationUrl);
                 $secure3d2->timeout = $config->timeout;
+
+                static::$instance->setSecure3dProvider(Secure3dVersion::TWO, $secure3d2);
             }
-
-            self::setSecure3dProvider(Secure3dVersion::TWO, $secure3d2);
-
         } else {
             if (isset($config->serviceUrl) && !empty($config->serviceUrl)) {
                 if ($config->environment === Environment::TEST) {
@@ -193,7 +194,7 @@ class ServicesContainer
     /**
      * @return ISecure3dProvider
      */
-    public function getSecure3d(Secure3dVersion $version) {
+    public function getSecure3d($version) {
         $provider = $this->getSecure3dProvider($version);
         if ($provider != null) {
             return $provider;

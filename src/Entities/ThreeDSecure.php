@@ -65,7 +65,7 @@ class ThreeDSecure
     public function setAmount($value)
     {
         $this->amount = $value;
-        $this->getMerchantData()->add('amount', (string)$this->amount, false);
+        $this->getMerchantData()->add('amount', $this->amount, false);
     }
 
     /**
@@ -277,17 +277,19 @@ class ThreeDSecure
      */
     public $statusReason;
 
-    /**
-     * @return void
-     */
-    public function setStatusReason($value)
-    {
-        $this->status = $value;
-        $this->merchantData->add('version', $this->status, false);
+    /** @var Secure3dVersion */
+    private $version;
+
+    /** @return Secure3dVersion */
+    public function getVersion() {
+        return $this->version;
     }
 
-    /** @var Secure3dVersion */
-    public $version;
+    /** @return void */
+    public function setVersion($version) {
+        $this->version = $version;
+        $this->merchantData->add('version', $version, false);
+    }
 
     /**
      * Consumer authentication (3DSecure) transaction ID

@@ -10,6 +10,9 @@ use GlobalPayments\Api\Entities\Enums\TransactionType;
 use GlobalPayments\Api\Entities\Exceptions\ApiException;
 use GlobalPayments\Api\Entities\Exceptions\GatewayException;
 use GlobalPayments\Api\PaymentMethods\CreditCardData;
+use GlobalPayments\Api\PaymentMethods\Interfaces\IPaymentMethod;
+use GlobalPayments\Api\PaymentMethods\Interfaces\ISecure3d;
+use GlobalPayments\Api\PaymentMethods\RecurringPaymentMethod;
 use GlobalPayments\Api\Utils\GenerationUtils;
 
 class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
@@ -32,27 +35,27 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
     }
 
     /** @return void */
-    public function setAccountId(string $accountId){
+    public function setAccountId($accountId){
         $this->accountId = $accountId;
     }
     /** @return void */
-    public function setMerchantId(string $merchantId){
+    public function setMerchantId($merchantId){
         $this->merchantId = $merchantId;
     }
     /** @return void */
-    public function setSharedSecret(string $sharedSecret){
+    public function setSharedSecret($sharedSecret){
         $this->sharedSecret = $sharedSecret;
     }
     /** @return void */
-    public function setChallengeNotificationUrl(string $challengNotificationUrl){
+    public function setChallengeNotificationUrl($challengeNotificationUrl){
         $this->challengeNotificationUrl = $challengeNotificationUrl;
     }
     /** @return void */
-    public function setMerchantContactUrl(string $merchantContactUrl){
+    public function setMerchantContactUrl($merchantContactUrl){
         $this->merchantContactUrl = $merchantContactUrl;
     }
     /** @return void */
-    public function setMethodNotificationUrl(string $methodNotificationUrl){
+    public function setMethodNotificationUrl($methodNotificationUrl){
         $this->methodNotificationUrl = $methodNotificationUrl;
     }
 
@@ -61,43 +64,51 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
      * @return Transaction */
     public function processSecure3d(Secure3dBuilder $builder) {
         $transType = $builder->getTransactionType();
-        $timestamp = date('yyyy-MM-dd\Thh:mm:ss.SSSSSS');
-        $cardData = $builder->getPaymentMethod();
+        $timestamp = date("Y-m-d\TH:i:s.u");
+        $paymentMethod = $builder->getPaymentMethod();
+        $secure3d = $paymentMethod;
 
         $request = [];
         if ($transType === TransactionType::VERIFY_ENROLLED) {
-            $hash = GenerationUtils::generateHash($this->sharedSecret, $timestamp . $this->merchantId . $cardData->number);
-
-            $request['Authorization'] = sprintf('securehash %s', $hash);
             $request['request_timestamp'] = $timestamp;
             $request['merchant_id'] = $this->merchantId;
             $request['account_id'] = $this->accountId;
-            $request['number'] = $cardData->number;
-            $request['scheme'] = strtoupper($this->mapCardScheme($cardData->getCardType()));
             $request['method_notification_url'] = $this->methodNotificationUrl;
 
-            $rawResponse = $this->doTransaction('POST', 'protocol-versions', json_encode($request));
+            $hashValue = '';
+            if ($paymentMethod instanceof CreditCardData) {
+                $cardData = $paymentMethod;
+                $request['number'] = $cardData->number;
+                $request['scheme'] = $this->mapCardScheme(strtoupper($cardData->getCardType()));
+                $hashValue = $cardData->number;
+            } else if ($paymentMethod instanceof RecurringPaymentMethod) {
+                $storedCard = $paymentMethod;
+                $request['payer_reference'] = $storedCard->customerKey;
+                $request['payment_reference'] = $storedCard->key;
+                $hashValue = $storedCard->customerKey;
+            }
+
+            $hash = GenerationUtils::generateHash($this->sharedSecret, implode('.', [$timestamp, $this->merchantId, $hashValue]));
+            $headers['Authorization'] = sprintf('securehash %s', $hash);
+
+            $rawResponse = $this->doTransaction('POST', 'protocol-versions', json_encode($request), null, $headers);
             return $this->mapResponse($rawResponse);
         } else if ($transType === TransactionType::VERIFY_SIGNATURE) {
-            $hash = GenerationUtils::generateHash($this->sharedSecret, $timestamp . $this->merchantId . $builder->getServerTransactionId());
-
-            $request['Authorization'] = sprintf('securehash %s', $hash);
+            $hash = GenerationUtils::generateHash($this->sharedSecret, implode('.', [$timestamp, $this->merchantId, $builder->getServerTransactionId()]));
+            $headers['Authorization'] = sprintf('securehash %s', $hash);
 
             $queryValues = [];
             $queryValues['merchant_id'] = $this->merchantId;
             $queryValues['request_timestamp'] = $timestamp;
-
-            $rawResponse = $this->doTransaction('GET', sprintf('authentication/%s', $builder->getServerTransactionId()), json_encode($request), $queryValues);
+            $rawResponse = $this->doTransaction('GET', sprintf('authentications/%s', $builder->getServerTransactionId()), null, $queryValues, $headers);
             return $this->mapResponse($rawResponse);
         } else if ($transType === TransactionType::INITIATE_AUTHENTICATION) {
-            $orderId = $builder->orderId;
+            $orderId = $builder->getOrderId();
             if (empty($orderId)) {
                 $orderId = GenerationUtils::generateOrderId();
             }
-            $secureEcom = $cardData->threeDSecure;
 
-            $hash = GenerationUtils::generateHash($this->sharedSecret, $timestamp . $this->merchantId . $cardData->number . $secureEcom->serverTransactionId);
-            $request['Authorization'] = sprintf('securehash %s', $hash);
+            $secureEcom = $secure3d->threeDSecure;
 
             $request['request_timestamp'] = $timestamp;
             $request['authentication_source'] = $builder->getAuthenticationSource();
@@ -110,22 +121,54 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
             $request['challenge_notification_url'] = $this->challengeNotificationUrl;
             $request['method_url_completion'] = $builder->getMethodUrlCompletion();
             $request['merchant_contact_url'] = $this->merchantContactUrl;
+            $request['merchant_initiated_request_type'] = $builder->getMerchantInitiatedRequestType();
 
             // card details
-            $request['card_detail']['number'] = $cardData->number;
-            $request['card_detail']['scheme'] = strtoupper($cardData->getCardType());
-            $request['card_detail']['expiry_month'] = $cardData->expMonth;
-            $request['card_detail']['expiry_year'] = $cardData->expYear;
-            $request['card_detail']['full_name'] = $cardData->cardHolderName;
+            $hashValue = '';
+            if ($paymentMethod instanceof CreditCardData) {
+                $cardData = $paymentMethod;
+                $hashValue = $cardData->number;
+
+                $request['card_detail']['number'] = $cardData->number;
+                $request['card_detail']['scheme'] = strtoupper($cardData->getCardType());
+                $request['card_detail']['expiry_month'] = $cardData->expMonth;
+                $request['card_detail']['expiry_year'] = substr($cardData->expYear, 2);
+                $request['card_detail']['full_name'] = $cardData->cardHolderName;
+
+                if (!empty($cardData->cardHolderName)) {
+                    $names = explode('\\s+', $cardData->cardHolderName);
+                    if (count($names) >= 1) {
+                        $request['card_detail']['first_name'] = $names[0];
+                    }
+                    if (count($names) >= 2) {
+                        $request['card_detail']['last_name'] = $names[1];
+                    }
+                }
+            } else if ($paymentMethod instanceof RecurringPaymentMethod) {
+                $storedCard = $paymentMethod;
+                $hashValue = $storedCard->customerKey;
+
+                $request['card_detail']['payer_reference'] = $storedCard->customerKey;
+                $request['card_detail']['payment_reference'] = $storedCard->key;
+            }
 
             // order details
-            $request['order']['amount'] = (string)$builder->getAmount();
+            $request['order']['amount'] = preg_replace('/[^0-9]/', '', sprintf('%01.2f', $builder->getAmount()));
             $request['order']['currency'] = $builder->getCurrency();
             $request['order']['id'] = $orderId;
-            $request['order']['address_match_indicator'] = ($builder->isAddressMatchIndicator() ? 'true' : 'false');
-            if ($builder->getOrderCreateDate() != null) {
-                $request['order']['date_time_created'] = date('yyyy-MM-dd\Thh:mm\Z', $builder->getOrderCreateDate());
-            }
+            $request['order']['address_match_indicator'] = ($builder->isAddressMatchIndicator() ? true : false);
+            $request['order']['date_time_created'] = (new \DateTime($builder->getOrderCreateDate()))->format(\DateTime::RFC3339_EXTENDED);
+            $request['order']['gift_card_count'] = $builder->getGiftCardCount();
+            $request['order']['gift_card_currency'] = $builder->getGiftCardCurrency();
+            $request['order']['gift_card_amount'] = preg_replace('/[^0-9]/', '', sprintf('%01.2f', $builder->getGiftCardAmount()));
+            $request['order']['delivery_email'] = $builder->getDeliveryEmail();
+            $request['order']['delivery_timeframe'] = $builder->getDeliveryTimeframe();
+            $request['order']['shipping_method'] = $builder->getShippingMethod();
+            $request['order']['shipping_name_matches_cardholder_name'] = $builder->getShippingNameMatchesCardHolderName();
+            $request['order']['preorder_indicator'] = $builder->getPreOrderIndicator();
+            $request['order']['reorder_indicator'] = $builder->getReorderIndicator();
+            $request['order']['transaction_type'] = $builder->getOrderTransactionType();
+            $request['order']['preorder_availability_date'] = null !== $builder->getPreOrderAvailabilityDate() ? date('Y-m-d', $builder->getPreOrderAvailabilityDate()) : null;
 
             // shipping address
             $shippingAddress = $builder->getShippingAddress();
@@ -136,11 +179,65 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
                 $request['order']['shipping_address']['city'] = $shippingAddress->city;
                 $request['order']['shipping_address']['post_code'] = $shippingAddress->postalCode;
                 $request['order']['shipping_address']['state'] = $shippingAddress->state;
-                $request['order']['shipping_address']['country'] = $shippingAddress->country;
+                $request['order']['shipping_address']['country'] = $shippingAddress->countryCode;
             }
 
             // payer
-            $request['payer']['email'] = $builder->getCustomerEmail();
+            $request['payer']['email'] = $builder->getCustomerEmail() ?? null;
+            $request['payer']['id'] = $builder->getCustomerAccountId();
+            $request['payer']['account_age'] = $builder->getAccountAgeIndicator();
+            $request['payer']['account_creation_date'] = null !== $builder->getAccountCreateDate() ? date('Y-m-d', strtotime($builder->getAccountCreateDate())) : null;
+            $request['payer']['account_change_indicator'] = $builder->getAccountChangeIndicator();
+            $request['payer']['account_change_date'] = null !== $builder->getAccountChangeDate() ? date('Y-m-d', strtotime($builder->getAccountChangeDate())) : null;
+            $request['payer']['account_password_change_indicator'] = $builder->getPasswordChangeIndicator();
+            $request['payer']['account_password_change_date'] = null !== $builder->getPasswordChangeDate() ? date('Y-m-d', strtotime($builder->getPasswordChangeDate())) : null;
+            $request['payer']['payment_account_age_indicator'] = $builder->getAccountAgeIndicator();
+            $request['payer']['payment_account_creation_date'] = null !== $builder->getAccountCreateDate() ? date('Y-m-d', strtotime($builder->getAccountCreateDate())) : null;
+            $request['payer']['purchase_count_last_6months'] = $builder->getNumberOfPurchasesInLastSixMonths();
+            $request['payer']['transaction_count_last_24hours'] = $builder->getNumberOfTransactionsInLast24Hours();
+            $request['payer']['transaction_count_last_year'] = $builder->getNumberOfTransactionsInLastYear();
+            $request['payer']['provision_attempt_count_last_24hours'] = $builder->getNumberOfAddCardAttemptsInLast24Hours();
+            $request['payer']['shipping_address_creation_indicator'] = $builder->getShippingAddressUsageIndicator();
+            $request['payer']['shipping_address_creation_date'] = null !== $builder->getShippingAddressCreateDate() ? date('Y-m-d', strtotime($builder->getShippingAddressCreateDate())) : null;
+
+            // suspicious activity
+            if ($builder->getPreviousSuspiciousActivity() != null) {
+                $request['payer']['suspicious_account_activity'] = $builder->getPreviousSuspiciousActivity() ? 'SUSPICIOUS_ACTIVITY' : 'NO_SUSPICIOUS_ACTIVITY';
+            }
+
+            // home phone
+            if (!empty($builder->getHomeNumber())) {
+                $request['payer']['home_phone']['country_code'] = $builder->getHomeCountryCode();
+                $request['payer']['home_phone']['subscriber_number'] = $builder->getHomeNumber();
+            }
+
+            // work phone
+            if (!empty($builder->getWorkNumber())) {
+                $request['payer']['work_phone']['country_code'] = $builder->getWorkCountryCode();
+                $request['payer']['work_phone']['subscriber_number'] = $builder->getWorkNumber();
+            }
+
+            // payer login data
+            if ($builder->hasPayerLoginData()) {
+                $request['payer_login_data']['authentication_data'] = $builder->getCustomerAuthenticationData();
+                $request['payer_login_data']['authentication_timestamp'] = $builder->getCustomerAuthenticationTimestamp();
+                $request['payer_login_data']['authentication_type'] = $builder->getCustomerAuthenticationMethod();
+            }
+
+            // prior authentication data
+            if ($builder->hasPriorAuthenticationData()) {
+                $request['payer_prior_three_ds_authentication_data']['authentication_method'] = $builder->getPriorAuthenticationMethod();
+                $request['payer_prior_three_ds_authentication_data']['acs_transaction_id'] = $builder->getPriorAuthenticationTransactionId();
+                $request['payer_prior_three_ds_authentication_data']['authentication_timestamp'] = date('Y-m-d\TH:i:s.u\Z', strtotime($builder->getPriorAuthenticationTimestamp()));
+                $request['payer_prior_three_ds_authentication_data']['authentication_data'] = $builder->getPriorAuthenticationData();
+            }
+
+            // recurring authorization data
+            if ($builder->hasRecurringAuthData()) {
+                $request['recurring_authorization_data']['max_number_of_installments'] = $builder->getMaxNumberOfInstallments();
+                $request['recurring_authorization_data']['frequency'] = $builder->getRecurringAuthorizationFrequency();
+                $request['recurring_authorization_data']['expiry_date'] = date('Y-m-d\TH:i:s.u\Z', strtotime($builder->getRecurringAuthorizationExpiryDate()));
+            }
 
             // billing details
             $billingAddress = $builder->getBillingAddress();
@@ -151,7 +248,7 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
                 $request['payer']['billing_address']['city'] = $billingAddress->city;
                 $request['payer']['billing_address']['post_code'] = $billingAddress->postalCode;
                 $request['payer']['billing_address']['state'] = $billingAddress->state;
-                $request['payer']['billing_address']['country'] = $billingAddress->country;
+                $request['payer']['billing_address']['country'] = $billingAddress->countryCode;
             }
 
             // mobile phone
@@ -166,8 +263,8 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
                 $request['browser_data']['accept_header'] = $browserData->acceptHeader;
                 $request['browser_data']['color_depth'] = $browserData->colorDepth;
                 $request['browser_data']['ip'] = $browserData->ipAddress;
-                $request['browser_data']['java_enabled'] = $browserData->javaEnabled;
-                $request['browser_data']['javascript_enabled'] = $browserData->javaScriptEnabled;
+                $request['browser_data']['java_enabled'] = (bool)$browserData->javaEnabled ?? false;
+                $request['browser_data']['javascript_enabled'] = (bool)$browserData->javaScriptEnabled ?? false;
                 $request['browser_data']['language'] = $browserData->language;
                 $request['browser_data']['screen_height'] = $browserData->screenHeight;
                 $request['browser_data']['screen_width'] = $browserData->screenWidth;
@@ -176,7 +273,25 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
                 $request['browser_data']['user_agent'] = $browserData->userAgent;
             }
 
-            $rawResponse = $this->doTransaction('POST', 'authentications', json_encode($request));
+            // mobile fields
+            if ($builder->hasMobileFields()) {
+                $request['sdk_information']['application_id'] = $builder->getApplicationId();
+                $request['sdk_information']['ephemeral_public_key'] = $builder->getEphemeralPublicKey();
+                $request['sdk_information']['maximum_timeout'] = $builder->getMaximumTimeout();
+                $request['sdk_information']['reference_number'] = $builder->getReferenceNumber();
+                $request['sdk_information']['sdk_trans_id'] = $builder->getSdkTransactionId();
+                $request['sdk_information']['encoded_data'] = $builder->getEncodedData();
+            }
+
+            // device render options
+            if ($builder->getSdkInterface() != null || $builder->getSdkUiTypes() != null) {
+                $request['sdk_information']['device_render_options']['sdk_interface'] = $builder->getSdkInterface();
+                $request['sdk_information']['device_render_options']['sdk_ui_type'] = $builder->getSdkUiTypes();
+            }
+
+            $hash = GenerationUtils::generateHash($this->sharedSecret, implode('.', [$timestamp, $this->merchantId, $hashValue, $secureEcom->serverTransactionId]));
+            $headers['Authorization'] = sprintf('securehash %s', $hash);
+            $rawResponse = $this->doTransaction('POST', 'authentications', json_encode($request, JSON_UNESCAPED_SLASHES), null, $headers);
             return $this->mapResponse($rawResponse);
         }
 
@@ -184,29 +299,28 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
     }
 
     /** @return Transaction */
-    private function mapResponse(string $rawResponse) {
+    private function mapResponse($rawResponse) {
         $doc = json_decode($rawResponse, true);
-
         $secureEcom = new ThreeDSecure();
 
         // check enrolled
-        $secureEcom->serverTransactionId = $doc['server_trans_id'];
+        $secureEcom->serverTransactionId = $doc['server_trans_id'] ?? null;
         if (array_key_exists('enrolled', $doc)) {
             $secureEcom->enrolled = (bool)$doc['enrolled'];
         }
-        $secureEcom->issuerAcsUrl = $doc['method_url'] . $doc['challenge_request_url'];
+        $secureEcom->issuerAcsUrl = ($doc['method_url'] ?? NULL) . ($doc['challenge_request_url'] ?? NULL);
 
         // get authentication data
-        $secureEcom->acsTransactionId = $doc['acs_trans_id'];
-        $secureEcom->directoryServerTransactionId = $doc['ds_trans_id'];
-        $secureEcom->authenticationType = $doc['authentication_type'];
-        $secureEcom->authenticationValue = $doc['authentication_value'];
-        $secureEcom->eci = $doc['eci'];
-        $secureEcom->status = $doc['status'];
-        $secureEcom->statusReason = $doc['status_reason'];
-        $secureEcom->authenticationSource = $doc['authentication_source'];
-        $secureEcom->messageCategory = $doc['message_category'];
-        $secureEcom->messageVersion = $doc['message_version'];
+        $secureEcom->acsTransactionId = $doc['acs_trans_id'] ?? NULL;
+        $secureEcom->directoryServerTransactionId = $doc['ds_trans_id'] ?? NULL;
+        $secureEcom->authenticationType = $doc['authentication_type'] ?? NULL;
+        $secureEcom->authenticationValue = $doc['authentication_value'] ?? NULL;
+        $secureEcom->eci = $doc['eci'] ?? NULL;
+        $secureEcom->status = $doc['status'] ?? NULL;
+        $secureEcom->statusReason = $doc['status_reason'] ?? NULL;
+        $secureEcom->authenticationSource = $doc['authentication_source'] ?? NULL;
+        $secureEcom->messageCategory = $doc['message_category'] ?? NULL;
+        $secureEcom->messageVersion = $doc['message_version'] ?? NULL;
 
         // challenge mandated
         if (array_key_exists('challenge_mandated', $doc)) {
@@ -214,34 +328,34 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
         }
 
         // initiate authentication
-        $secureEcom->cardHolderResponseInfo = $doc['cardHolder_response_info'];
+        $secureEcom->cardHolderResponseInfo = $doc['cardHolder_response_info'] ?? NULL;
 
         // device_render_options
         if (array_key_exists('device_render_options', $doc)) {
             $renderOptions = $doc['device_render_options'];
-            $secureEcom->sdkInterface = $renderOptions['sdk_interface'];
-            $secureEcom->sdkUiType = $renderOptions['sdk_ui_type'];
+            $secureEcom->sdkInterface = $renderOptions['sdk_interface'] ?? NULL;
+            $secureEcom->sdkUiType = $renderOptions['sdk_ui_type'] ?? NULL;
         }
 
         // message_extension
         if (array_key_exists('message_extension', $doc)) {
-            $secureEcom->criticalityIndicator = $doc['message_extension']['criticality_indicator'];
-            $secureEcom->messageExtensionId = $doc['message_extension']['id'];
-            $secureEcom->messageExtensionName = $doc['message_extension']['name'];
+            $secureEcom->criticalityIndicator = $doc['message_extension']['criticality_indicator'] ?? NULL;
+            $secureEcom->messageExtensionId = $doc['message_extension']['id'] ?? NULL;
+            $secureEcom->messageExtensionName = $doc['message_extension']['name'] ?? NULL;
         }
 
         // versions
-        $secureEcom->directoryServerEndVersion = $doc['ds_protocol_version_end'];
-        $secureEcom->directoryServerStartVersion = $doc['ds_protocol_version_start'];
-        $secureEcom->acsEndVersion = $doc['acs_protocol_version_end'];
-        $secureEcom->acsStartVersion = $doc['acs_protocol_version_start'];
+        $secureEcom->directoryServerEndVersion = $doc['ds_protocol_version_end'] ?? NULL;
+        $secureEcom->directoryServerStartVersion = $doc['ds_protocol_version_start'] ?? NULL;
+        $secureEcom->acsEndVersion = $doc['acs_protocol_version_end'] ?? NULL;
+        $secureEcom->acsStartVersion = $doc['acs_protocol_version_start'] ?? NULL;
 
         // payer authentication request
         if (array_key_exists('method_data', $doc)) {
             $methodData = $doc['method_data'];
-            $secureEcom->payerAuthenticationRequest = $methodData['encoded_method_data'];
+            $secureEcom->payerAuthenticationRequest = $methodData['encoded_method_data'] ?? NULL;
         } else if (array_key_exists('encoded_creq', $doc)) {
-            $secureEcom->payerAuthenticationRequest = $doc['encoded_creq'];
+            $secureEcom->payerAuthenticationRequest = $doc['encoded_creq'] ?? NULL;
         }
 
         $response = new Transaction();
@@ -249,7 +363,7 @@ class Gp3DSProvider extends RestGateway implements ISecure3dProvider {
         return $response;
     }
 
-    private function mapCardScheme(string $cardType) {
+    private function mapCardScheme($cardType) {
         if ($cardType == "MC") {
             return "MASTERCARD";
         } else if ($cardType == "DINERSCLUB") {

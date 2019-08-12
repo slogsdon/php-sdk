@@ -4,6 +4,7 @@ namespace GlobalPayments\Api;
 
 use GlobalPayments\Api\Entities\Exceptions\ConfigurationException;
 use GlobalPayments\Api\Entities\Enums\Environment;
+use GlobalPayments\Api\Entities\Enums\Secure3dVersion;
 
 class ServicesConfig
 {
@@ -29,7 +30,7 @@ class ServicesConfig
     /**
      * @var string
      */
-    public $challengeNoticiationUrl;
+    public $challengeNotificationUrl;
 
     /**
      * @var string
@@ -123,7 +124,7 @@ class ServicesConfig
         // secure 3d
         if ($this->secure3dVersion != null) {
             if ($this->secure3dVersion === Secure3dVersion::TWO || $this->secure3dVersion === Secure3dVersion::ANY) {
-                if (empty($this->challengeNoticiationUrl)) {
+                if (empty($this->challengeNotificationUrl)) {
                     throw new ConfigurationException("The challenge notification URL is required for 3DS v2 processing.");
                 }
 

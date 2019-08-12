@@ -63,13 +63,14 @@ abstract class Gateway
         $verb,
         $endpoint,
         $data = null,
-        array $queryStringParams = null
+        array $queryStringParams = null,
+        $headers = []
     ) {
         try {
             $queryString = $this->buildQueryString($queryStringParams);
             $request = curl_init($this->serviceUrl . $endpoint . $queryString);
 
-            $this->headers = array_merge($this->headers, [
+            $this->headers = array_merge($this->headers, $headers, [
                 'Content-Type' => sprintf('%s', $this->contentType),
                 'Content-Length' => $data === null ? 0 : strlen($data),
             ]);
@@ -88,7 +89,7 @@ abstract class Gateway
             curl_setopt($request, CURLOPT_POSTFIELDS, $data);
             curl_setopt($request, CURLOPT_HTTPHEADER, $headers);
             curl_setopt($request, CURLOPT_PROTOCOLS, CURLPROTO_HTTPS);
-            // curl_setopt($request, CURLOPT_VERBOSE, true);
+            curl_setopt($request, CURLOPT_VERBOSE, true);
             curl_setopt($request, CURLOPT_SSLVERSION, CURL_SSLVERSION_TLSv1_2);
 
             if (

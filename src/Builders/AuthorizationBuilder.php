@@ -214,6 +214,12 @@ class AuthorizationBuilder extends TransactionBuilder
     public $shippingAmount;
 
     /**
+     * @internal
+     * @var StoredCredential
+     */
+    public $storedCredential;
+
+    /**
      * Request hosted payment data
      *
      * @internal
@@ -398,8 +404,7 @@ class AuthorizationBuilder extends TransactionBuilder
     public function __construct($type, IPaymentMethod $paymentMethod = null)
     {
         parent::__construct($type, $paymentMethod);
-        $this->transactionType = $type;
-        $this->paymentMethod = $paymentMethod;
+        $this->withPaymentMethod($paymentMethod);
     }
 
     /**
@@ -1023,6 +1028,14 @@ class AuthorizationBuilder extends TransactionBuilder
     public function withShippingAmount($shippingAmount)
     {
         $this->shippingAmount = $shippingAmount;
+        return $this;
+    }
+
+    /**
+     * @return AuthorizationBuilder
+     */
+    public function withStoredCredential($storedCredential) {
+        $this->storedCredential = $storedCredential;
         return $this;
     }
 
