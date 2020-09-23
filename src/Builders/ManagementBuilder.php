@@ -48,6 +48,14 @@ class ManagementBuilder extends TransactionBuilder
     public $currency;
 
     /**
+     * Request customer ID
+     *
+     * @internal
+     * @var string|float
+     */
+    public $customerId;
+
+    /**
      * @internal
      * @var string
      */
@@ -60,6 +68,14 @@ class ManagementBuilder extends TransactionBuilder
      * @var string|float
      */
     public $gratuity;
+
+    /**
+     * Request invoice number
+     *
+     * @internal
+     * @var string|float
+     */
+    public $invoiceNumber;
 
     /**
      * Request purchase order number
@@ -256,6 +272,19 @@ class ManagementBuilder extends TransactionBuilder
     }
 
     /**
+     * Set the request customer ID
+     *
+     * @param string|float $customerId Request customer ID
+     *
+     * @return AuthorizationBuilder
+     */
+    public function withCustomerId($customerId)
+    {
+        $this->customerId = $customerId;
+        return $this;
+    }
+
+    /**
      * Sets the transaction's description.
      *
      * This value is not guaranteed to be sent in the authorization
@@ -284,6 +313,19 @@ class ManagementBuilder extends TransactionBuilder
     public function withGratuity($gratuity)
     {
         $this->gratuity = $gratuity;
+        return $this;
+    }
+
+    /**
+     * Set the request invoice number
+     *
+     * @param string|float $invoiceNumber Request invoice number
+     *
+     * @return ManagementBuilder
+     */
+    public function withInvoiceNumber($invoiceNumber)
+    {
+        $this->invoiceNumber = $invoiceNumber;
         return $this;
     }
 
