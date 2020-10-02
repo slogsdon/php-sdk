@@ -38,6 +38,8 @@ use GlobalPayments\Api\Entities\Reporting\TransactionSummary;
 use GlobalPayments\Api\Entities\Reporting\SearchCriteria;
 use GlobalPayments\Api\Entities\Reporting\SearchCriteriaBuilder;
 use GlobalPayments\Api\Services\ReportingService;
+use GlobalPayments\Api\Entities\Enums\StoredCredentialInitiator;
+use GlobalPayments\Api\Entities\Exceptions\BuilderException;
 
 class PorticoConnector extends XmlGateway implements IPaymentGateway
 {
@@ -203,8 +205,8 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
 
         $propertyName = $isCheck ? 'checkHolderName' : 'cardHolderName';
         if ($isCheck
-            || $builder->billingAddress !== null 
-            || isset($builder->paymentMethod->{$propertyName}) 
+            || $builder->billingAddress !== null
+            || isset($builder->paymentMethod->{$propertyName})
         ) {
             if ($builder->transactionType !== TransactionType::REVERSAL) {
                 $address = $this->hydrateHolder($xml, $builder, $isCheck);
@@ -219,6 +221,18 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
             $builder->transactionType === TransactionType::REPLACE ? 'OldCardData' : 'CardData'
         );
         if ($builder->paymentMethod instanceof ICardData) {
+            if ($builder->transactionInitiator !== null) {
+                //card on file request
+                $intiator = ($builder->transactionInitiator === StoredCredentialInitiator::CARDHOLDER) ? 'C' : 'M';
+                $cardOnFileData = $xml->createElement('CardOnFileData');
+                $cardOnFileData->appendChild($xml->createElement('CardOnFile', $intiator));
+                
+                if (!empty($builder->cardBrandTransactionId)) {
+                    $cardOnFileData->appendChild($xml->createElement('CardBrandTxnId', $builder->cardBrandTransactionId));
+                }
+                $block1->appendChild($cardOnFileData);
+            }
+            
             $cardData->appendChild(
                 $this->hydrateManualEntry(
                     $xml,
@@ -349,6 +363,18 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
 
         if ($builder->paymentMethod instanceof RecurringPaymentMethod) {
             $method = $builder->paymentMethod;
+            if ($builder->transactionInitiator !== null) {
+                //card on file request
+                $intiator = ($builder->transactionInitiator === StoredCredentialInitiator::CARDHOLDER) ? 'C' : 'M';
+                $cardOnFileData = $xml->createElement('CardOnFileData');
+                $cardOnFileData->appendChild($xml->createElement('CardOnFile', $intiator));
+                
+                if (!empty($builder->cardBrandTransactionId)) {
+                    $cardOnFileData->appendChild($xml->createElement('CardBrandTxnId', $builder->cardBrandTransactionId));
+                }
+                $block1->appendChild($cardOnFileData);
+            }
+            
 
             if ($method->paymentType === 'ACH') {
                 $block1->appendChild($xml->createElement('CheckAction', 'SALE'));
@@ -418,7 +444,7 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
             $block1->appendChild($xml->createElement('BalanceInquiryType', $builder->balanceInquiryType));
         }
 
-        if ($builder->level2Request === true) {
+        if ($builder->level2Request === true || $builder->commercialData !== null) {
             $block1->appendChild($xml->createElement('CPCReq', 'Y'));
         }
 
@@ -478,6 +504,48 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
             $block1->appendChild(
                 $xml->createElement('TxnDescriptor', $builder->dynamicDescriptor)
             );
+        }
+      
+        if ($builder->commercialData !== null) {
+            $commercialDataNode = $xml->createElement('CPCData');
+
+            $commercialDataNode->appendChild($xml->createElement('CardHolderPONbr', $builder->commercialData->poNumber));
+            $commercialDataNode->appendChild($xml->createElement('TaxType', $builder->commercialData->taxType));
+            $commercialDataNode->appendChild($xml->createElement('TaxAmt', $builder->commercialData->taxAmount));
+
+            $block1->appendChild($commercialDataNode);
+        }
+      
+        // auto substantiation
+        if ($builder->autoSubstantiation !== null) {
+            $autoSubstantiationNode = $xml->createElement('AutoSubstantiation');
+
+            $fieldNames = ["First", "Second", "Third", "Fourth"];
+            $i = 0;
+            $hasAdditionalAmount = false;
+
+            foreach ($builder->autoSubstantiation->amounts as $amtType => $amount) {
+                if ($amount !== 0) {
+                    $hasAdditionalAmount = true;
+                    if ($i > 3) { // Portico Gateway limits to 3 subtotals
+                        throw new BuilderException("You may only specify three different subtotals in a single transaction.");
+                    }                    
+                    $additionalAmountNode = $xml->createElement($fieldNames[$i] . "AdditionalAmtInfo");
+                    $additionalAmountNode->appendChild($xml->createElement("AmtType", $amtType));
+                    $additionalAmountNode->appendChild($xml->createElement("Amt", $amount));                    
+                    $autoSubstantiationNode->appendChild($additionalAmountNode);
+                    $i++;
+                }
+            }
+          
+            $autoSubstantiationNode->appendChild($xml->createElement("MerchantVerificationValue", $builder->autoSubstantiation->merchantVerificationValue));
+            $autoSubstantiationNode->appendChild($xml->createElement("RealTimeSubstantiation", $builder->autoSubstantiation->realTimeSubstantiation ? "Y" : "N"));
+
+            if ($hasAdditionalAmount) { // Portico Gateway requires at least one healthcare amount subtotal
+                $block1->appendChild($autoSubstantiationNode);
+            } else {
+                throw new BuilderException("You must provide at least one healthcare amount w/autoSubstantiation requests");
+            }            
         }
 
         $transaction->appendChild($block1);
@@ -569,9 +637,6 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
                 }
             }
 
-            // Additional Txn Fields
-            // TODO
-
             // Token Management
             if ($builder->transactionType === TransactionType::TOKEN_UPDATE
                 || $builder->transactionType === TransactionType::TOKEN_DELETE
@@ -595,6 +660,16 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
                 } else {
                     $tokenActions->appendChild($xml->createElement('Delete'));
                 }
+            }
+
+            // Additional Transaction Fields
+            if (!empty($builder->customerId) || !empty($builder->description) || !empty($builder->invoiceNumber)) {
+                $addons = $xml->createElement('AdditionalTxnFields');
+                $addons->appendChild($xml->createElement('CustomerID', $builder->customerId));
+                $addons->appendChild($xml->createElement('Description', $builder->description));
+                $addons->appendChild($xml->createElement('InvoiceNbr', $builder->invoiceNumber));
+
+                $root->appendChild($addons);
             }
 
             if ($builder->transactionType === TransactionType::REVERSAL
@@ -1067,6 +1142,10 @@ class PorticoConnector extends XmlGateway implements IPaymentGateway
             $result->batchSummary->transactionCount = (string)$item->TxnCnt;
             $result->batchSummary->totalAmount = (string)$item->TotalAmt;
             $result->batchSummary->sequenceNumber = (string)$item->BatchSeqNbr;
+        }
+        
+        if (isset($item) && isset($item->CardBrandTxnId)) {
+            $result->cardBrandTransactionId = (string)$item->CardBrandTxnId;
         }
 
         return $result;

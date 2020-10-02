@@ -87,7 +87,6 @@ class Secure3dServiceTests extends TestCase
         $this->browserData->challengWindowSize = ChallengeWindowSize::WINDOWED_600X400;
         $this->browserData->timeZone = '0';
         $this->browserData->userAgent = 'Mozilla/5.0 (Windows NT 6.1; Win64, x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.110 Safari/537.36';
-
     }
 
     protected function getConfig()
@@ -251,7 +250,6 @@ class Secure3dServiceTests extends TestCase
         } else {
             $this->fail('Card not enrolled');
         }
-
     }
 
     public function testFullCycle_v2_StoredCard()
@@ -292,7 +290,6 @@ class Secure3dServiceTests extends TestCase
             } else {
                 $this->fail('Signature verification failed.');
             }
-
         } else {
             $this->fail('Card not enrolled');
         }
@@ -336,7 +333,6 @@ class Secure3dServiceTests extends TestCase
             } else {
                 $this->fail('Signature verification failed.');
             }
-
         } else {
             $this->fail('Card not enrolled');
         }
@@ -380,7 +376,6 @@ class Secure3dServiceTests extends TestCase
             } else {
                 $this->fail('Signature verification failed.');
             }
-
         } else {
             $this->fail('Card not enrolled');
         }
@@ -575,7 +570,7 @@ class Secure3dServiceTests extends TestCase
                 // optionals
                 ->withPriorAuthenticationMethod(PriorAuthenticationMethod::FRICTIONLESS_AUTHENTICATION)
                 ->withPriorAuthenticationTransactionId('26c3f619-39a4-4040-bf1f-6fd433e6d615')
-                ->withPriorAuthenticationTimestamp((new \DateTime('2019-01-10T12:57:33.333Z'))->format(\DateTime::RFC3339_EXTENDED))                
+                ->withPriorAuthenticationTimestamp((new \DateTime('2019-01-10T12:57:33.333Z'))->format(\DateTime::RFC3339_EXTENDED))
 
                 ->execute();
             $this->assertNotNull($initAuth);

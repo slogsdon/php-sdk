@@ -1155,7 +1155,7 @@ class Secure3dBuilder extends BaseBuilder
             // check the response
             if (!empty($response)) {
                 switch ($this->transactionType) {
-                    case TransactionType::VERIFY_ENROLLED: 
+                    case TransactionType::VERIFY_ENROLLED:
                         if (!empty($response->threeDSecure)) {
                             $rvalue = $response->threeDSecure;
                             if ((bool)$rvalue->enrolled) {
