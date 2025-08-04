@@ -1,6 +1,4 @@
 FROM mcr.microsoft.com/devcontainers/php:8.2
 
-RUN apt-get update && \
-    apt-get install -y --no-install-recommends \
-    php8.2-intl \
-    && rm -rf /var/lib/apt/lists/*
+RUN ( curl -sSLf https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions -o - || echo 'return 1' ) | sh -s \
+      intl
