@@ -10,12 +10,12 @@
         'csb_is_trusted',
         'true',
         [
-            expires => time()+3600, 
-            path => '/',
-            domain => 'csb.app',
-            secure => true, 
-            httponly => false,
-            samesite => 'None',
+            'expires' => time()+3600, 
+            'path' => '/',
+            'domain' => 'csb.app',
+            'secure' => true, 
+            'httponly' => false,
+            'samesite' => 'None',
         ]
         );
 ?>
