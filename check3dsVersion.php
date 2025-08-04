@@ -24,7 +24,7 @@ $config->appKey = GenerateToken::APP_KEY;
 $config->environment = Environment::TEST;
 $config->country = 'GB';
 $config->channel = Channel::CardNotPresent;
-$config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/'; //$_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';;
+$config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=' . $_SERVER['HTTP_ORIGIN']; //$_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';;
 $config->merchantContactUrl = "https://www.example.com/about";
 $config->challengeNotificationUrl =  $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
 
