@@ -36,7 +36,7 @@ $config->country = 'GB';
 $config->channel = Channel::CardNotPresent;
 $config->merchantContactUrl = "https://www.example.com/contact-us";
 $config->methodNotificationUrl =  $_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';
-$config->challengeNotificationUrl =  $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
+$config->challengeNotificationUrl =  'https://eo8tvks4h47e12.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); //$_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
 
 ServicesContainer::configureService($config);
 
