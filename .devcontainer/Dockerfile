@@ -1,3 +1,3 @@
 FROM mcr.microsoft.com/devcontainers/php
 
-RUN yes | pecl install curl dom intl zip
+RUN docker-php-ext-install intl
