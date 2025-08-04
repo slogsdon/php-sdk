@@ -156,7 +156,8 @@ async function start3DS(token){
 
     try {
         versionCheckData = await checkVersion('check3dsVersion.php', {
-            tokenResponse:token
+            tokenResponse: token,
+            methodWindow: { origin: 'https://eowdgj59t49mm2z.m.pipedream.net' }
         });
 
         console.log ('Version Check Data: ', versionCheckData)
@@ -172,6 +173,7 @@ async function start3DS(token){
                 challengeWindow: {
                     windowSize: ChallengeWindowSize.Windowed600x400,
                     displayMode: 'lightbox',
+                    origin: undefined
                 },
                 authenticationRequestType: AuthenticationRequestType.PaymentTransaction,
                 serverTransactionId: versionCheckData.serverTransactionId,
