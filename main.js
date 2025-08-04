@@ -157,7 +157,7 @@ async function start3DS(token){
     try {
         versionCheckData = await checkVersion('check3dsVersion.php', {
             tokenResponse: token,
-            methodWindow: { origin: 'https://eowdgj59t49mm2z.m.pipedream.net' }
+            methodWindow: { origin: 'https://shane.logsdon.io' }
         });
 
         console.log ('Version Check Data: ', versionCheckData)
