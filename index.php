@@ -6,18 +6,6 @@
 
     require_once('GenerateToken.php');
     $accessToken = GenerateToken::getInstance()->getAccessToken();
-    setcookie(
-        'csb_is_trusted',
-        'true',
-        [
-            'expires' => time()+3600, 
-            'path' => '/',
-            'domain' => 'csb.app',
-            'secure' => true, 
-            'httponly' => false,
-            'samesite' => 'None',
-        ]
-        );
 ?>
 <!doctype html>
 <html>
