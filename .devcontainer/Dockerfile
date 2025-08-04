@@ -1,3 +1,3 @@
 FROM mcr.microsoft.com/devcontainers/php
 
-RUN docker-php-ext-install intl
+RUN apt-get install -y php-intl
