@@ -26,7 +26,7 @@ $config->country = 'GB';
 $config->channel = Channel::CardNotPresent;
 $config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); //$_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';;
 $config->merchantContactUrl = "https://www.example.com/about";
-$config->challengeNotificationUrl =  $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
+$config->challengeNotificationUrl =  'https://eo8tvks4h47e12.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); // $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
 
 ServicesContainer::configureService($config);
 
