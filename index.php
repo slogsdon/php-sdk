@@ -1,7 +1,7 @@
 <?php
     session_start();
-    ini_set('display_errors', 1);
-    ini_set('display_startup_errors', 1);
+    ini_set('display_errors', 0);
+    ini_set('display_startup_errors', 0);
     error_reporting(E_ALL);
 
     require_once('GenerateToken.php');
@@ -25,6 +25,12 @@
         <p>3DS test card with CHALLENGE_REQUIRED: 4012 0010 3848 8884</p>
         <p>Amount: 100 EUR</p>
         <form id="payment-form" method="post">
+            <div>
+                <label>
+                    <input type="checkbox" name="skip-3ds" id="skip-3ds" />
+                    <span>Skip 3DS</span>
+                </label>
+            </div>
             <!-- Target for the credit card form -->
             <div id="credit-card"></div>
         </form>

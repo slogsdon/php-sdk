@@ -1,6 +1,6 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 error_reporting(E_ALL);
 
 require_once('vendor/autoload.php');
@@ -18,8 +18,8 @@ use GlobalPayments\Api\PaymentMethods\CreditCardData;
 $requestData = $_REQUEST;
 $serverTransactionId = $requestData['serverTransactionId'];
 $paymentToken = $requestData['tokenResponse'];
+$skip3ds = !empty($requestData['skip-3ds']);
 
-console_log($serverTransactionId);
 function console_log($data)
 {
     $data = htmlspecialchars($data, ENT_NOQUOTES);
@@ -41,20 +41,6 @@ $config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=
 $config->merchantContactUrl = "https://www.example.com/about";
 $config->challengeNotificationUrl =  'https://eo8tvks4h47e12.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); // $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
 ServicesContainer::configureService($config);
-
-try {
-    $secureEcom = Secure3dService::getAuthenticationData()
-        ->withServerTransactionId($serverTransactionId)
-        ->execute();
-} catch (ApiException $e) {
-    //TODO: Add your error handling here
-    var_dump('Obtain Authentication error:', $e);
-}
-
-$authenticationValue = $secureEcom->authenticationValue;
-$dsTransId = $secureEcom->directoryServerTransactionId;
-$messageVersion = $secureEcom->messageVersion;
-$eci = $secureEcom->eci;
 ?>
 <!DOCTYPE html>
 <html>
@@ -65,39 +51,60 @@ $eci = $secureEcom->eci;
 </head>
 
 <body>
-    <h2>3D Secure 2 Authentication</h2>
-    <?php
-    $condition = ($secureEcom->liabilityShift != 'YES' ||
-        !in_array(
-            $secureEcom->status,
-            [
-                Secure3dStatus::SUCCESS_AUTHENTICATED,
-                Secure3dStatus::SUCCESS_ATTEMPT_MADE
-            ]
-        ));
-    if (empty($condition) && !$condition) {
-        echo "<p><strong>Hurray! Your trasaction was authenticated successfully!</strong></p>";
-    } else {
-        echo "<p><strong>Oh Dear! Your trasaction was not authenticated successfully!</strong></p>";
-    }
-    ?>
-    <p>Server Trans ID: <?= !empty($serverTransactionId) ? htmlspecialchars($serverTransactionId, ENT_NOQUOTES) : "" ?></p>
-    <p>Authentication Value: <?= !empty($authenticationValue) ? $authenticationValue : "" ?></p>
-    <p>DS Trans ID: <?= $dsTransId ?></p>
-    <p>Message Version: <?= $messageVersion ?></p>
-    <p>ECI: <?= $eci ?></p>
+    <?php if (!$skip3ds): ?>
+        <?php
+        console_log($serverTransactionId);
+        try {
+            $secureEcom = Secure3dService::getAuthenticationData()
+                ->withServerTransactionId($serverTransactionId)
+                ->execute();
+        } catch (ApiException $e) {
+            //TODO: Add your error handling here
+            var_dump('Obtain Authentication error:', $e);
+        }
 
-    <pre>
-<?php
-print_r(htmlspecialchars(json_encode($secureEcom), ENT_NOQUOTES));
-?>
-</pre>
+        $authenticationValue = $secureEcom->authenticationValue;
+        $dsTransId = $secureEcom->directoryServerTransactionId;
+        $messageVersion = $secureEcom->messageVersion;
+        $eci = $secureEcom->eci;
+        ?>
+            <h2>3D Secure 2 Authentication</h2>
+        <?php
+        $condition = ($secureEcom->liabilityShift != 'YES' ||
+            !in_array(
+                $secureEcom->status,
+                [
+                    Secure3dStatus::SUCCESS_AUTHENTICATED,
+                    Secure3dStatus::SUCCESS_ATTEMPT_MADE
+                ]
+            ));
+        if (empty($condition) && !$condition) {
+            echo "<p><strong>Hurray! Your trasaction was authenticated successfully!</strong></p>";
+        } else {
+            echo "<p><strong>Oh Dear! Your trasaction was not authenticated successfully!</strong></p>";
+        }
+        ?>
+        <p>Server Trans ID: <?= !empty($serverTransactionId) ? htmlspecialchars($serverTransactionId, ENT_NOQUOTES) : "" ?></p>
+        <p>Authentication Value: <?= !empty($authenticationValue) ? $authenticationValue : "" ?></p>
+        <p>DS Trans ID: <?= $dsTransId ?></p>
+        <p>Message Version: <?= $messageVersion ?></p>
+        <p>ECI: <?= $eci ?></p>
+
+        <pre>
+        <?php
+        print_r(htmlspecialchars(json_encode($secureEcom), ENT_NOQUOTES));
+        ?>
+        </pre>
+    <?php endif; ?>
+
     <h2>Transaction details:</h2>
     <?php
     if (!$condition) {
         $paymentMethod = new CreditCardData();
         $paymentMethod->token = $paymentToken;
-        $paymentMethod->threeDSecure = $secureEcom;
+        if (!$skip3ds) {
+            $paymentMethod->threeDSecure = $secureEcom;
+        }
         // proceed to authorization with liability shift
         try {
             $response = $paymentMethod->charge(100)

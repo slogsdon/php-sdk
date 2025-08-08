@@ -1,4 +1,6 @@
 <?php
+ini_set('display_errors', 0);
+ini_set('display_startup_errors', 0);
 
 /**
  * This sample code is not specific to the Global Payments SDK and is intended as a simple example and

@@ -120,8 +120,11 @@ cardForm.ready(() => {
 
 cardForm.on("token-success", async (resp) => {
 
-    //start 3DS2 Flow
-    await start3DS(resp.paymentReference);
+    const skip3ds = document.querySelector('#skip-3ds');
+    if (!skip3ds.checked) {
+        //start 3DS2 Flow
+        await start3DS(resp.paymentReference);
+    }
 
     // add payment token to form as a hidden input
     const token = document.createElement("input");
@@ -132,6 +135,8 @@ cardForm.on("token-success", async (resp) => {
     // Submit data to the integration's backend for processing
     const form = document.getElementById("payment-form");
     form.appendChild(token);
+    form.setAttribute("action", "authorization.php");
+    form.submit();
 });
 
 cardForm.on("token-error", (resp) => {
