@@ -35,7 +35,7 @@ $config = new GpApiConfig();
 $config->appId = GenerateToken::APP_ID;
 $config->appKey = GenerateToken::APP_KEY;
 $config->environment = Environment::TEST;
-$config->country = 'GB';
+$config->country = 'IE';
 $config->channel = Channel::CardNotPresent;
 $config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); //$_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';;
 $config->merchantContactUrl = "https://www.example.com/about";
@@ -120,6 +120,7 @@ ServicesContainer::configureService($config);
         }
     }
     ?>
+    <p>Payment Token: <?= $paymentToken ?? null ?></p>
     <p>Trans ID: <?= $transactionId ?? null ?></p>
     <p>Trans status: <?= $transactionStatus ?? null ?></p>
     <pre>

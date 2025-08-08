@@ -129,7 +129,7 @@ cardForm.on("token-success", async (resp) => {
     // add payment token to form as a hidden input
     const token = document.createElement("input");
     token.type = "hidden";
-    token.name = "payment_token";
+    token.name = "tokenResponse";
     token.value = resp.paymentReference;
 
     // Submit data to the integration's backend for processing
