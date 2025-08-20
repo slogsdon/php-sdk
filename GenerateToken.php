@@ -10,8 +10,11 @@ use GlobalPayments\Api\Services\GpApiService;
 
 class GenerateToken
 {
-    const APP_ID = 'UJqPrAhrDkGzzNoFInpzKqoI8vfZtGRV';
-    const APP_KEY = 'zCFrbrn0NKly9sB4';
+    // const APP_ID = 'UJqPrAhrDkGzzNoFInpzKqoI8vfZtGRV';
+    // const APP_KEY = 'zCFrbrn0NKly9sB4';
+
+    const APP_ID = 'bvKLJsu6vYC9zxX2BpOgNK95kbboP3Uw';
+    const APP_KEY = '7aH9QlA3yVFwpESQ';
 
     private static $instance = null;
     private $accessToken;
@@ -22,7 +25,7 @@ class GenerateToken
         $config->appId = self::APP_ID;
         $config->appKey = self::APP_KEY;
         $config->channel = Channel::CardNotPresent;
-        $config->permissions = ["PMT_POST_Create_Single"];
+        $config->permissions = ["PMT_POST_Create_Single"];//, "ACC_GET_Single"];
 
         $accessTokenInfo = GpApiService::generateTransactionKey($config);
         $this->accessToken = $accessTokenInfo->accessToken;

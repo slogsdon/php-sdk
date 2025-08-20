@@ -2,11 +2,33 @@
 GlobalPayments.configure({
     accessToken,
     env: "sandbox", // or "production"
-    apiVersion: "2021-03-22"
+    apiVersion: "2021-03-22",
+    account: "TRA_1366cd0db8c14fffb130ab49be84d944",
+    apms: {
+        nonCardPayments: {
+            allowedPaymentMethods: [
+                {
+                    provider: GlobalPayments.enums.ApmProviders.ExpressPay,
+                    enabled: true
+                }
+            ]
+        }
+    },
+    expressPay: {
+        enabled: true,
+        cancelUri: "http://localhost:8001/cancel.php",
+        paymentUri: "http://localhost:8001/authorization.php",
+        isShippingRequired: true,
+        payButtonLabel: "",
+    },
+    fieldValidation: true,
 });
 
 // Create Form
-const cardForm = GlobalPayments.creditCard.form("#credit-card", {style: "gp-default"});
+const cardForm = GlobalPayments.creditCard.form("#credit-card", {
+    amount: "60",
+    style: "gp-default2"
+});
 // form-level event handlers. examples:
 cardForm.ready(() => {
     console.log("Registration of all credit card fields occurred");
@@ -119,6 +141,17 @@ cardForm.ready(() => {
 });
 
 cardForm.on("token-success", async (resp) => {
+    console.log(resp);
+    if (resp.expressPayEnabled) {
+        const merchantCustomEventProvideDetails = new CustomEvent(
+            GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail,
+            {
+                detail: resp,
+            }
+        );
+        window.dispatchEvent(merchantCustomEventProvideDetails);
+        return;
+    }
 
     const skip3ds = document.querySelector('#skip-3ds');
     if (!skip3ds.checked) {

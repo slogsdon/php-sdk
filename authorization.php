@@ -41,6 +41,13 @@ $config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=
 $config->merchantContactUrl = "https://www.example.com/about";
 $config->challengeNotificationUrl =  'https://eo8tvks4h47e12.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); // $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
 ServicesContainer::configureService($config);
+
+if (!empty($_GET['details'])) {
+    $details = json_decode(base64_decode($_GET['details']));
+    print_r($details);
+    exit;
+}
+
 ?>
 <!DOCTYPE html>
 <html>
