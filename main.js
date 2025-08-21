@@ -152,14 +152,10 @@ cardForm.ready(() => {
 cardForm.on(GlobalPayments.enums.ApmEvents.PaymentMethodSelection, paymentProviderData => {
     const {
         provider,
-        countryCode,
-        currencyCode,
-        bankName,
-        acquirer,
         redirectUrl,
     } = paymentProviderData;
 
-    let detail = {};
+    console.log(paymentProviderData);
 
     switch (provider) {
         case GlobalPayments.enums.ApmProviders.ExpressPay:
@@ -173,7 +169,7 @@ cardForm.on(GlobalPayments.enums.ApmEvents.PaymentMethodSelection, paymentProvid
 
 cardForm.on("token-success", async (resp) => {
     console.log(resp);
-    if (resp.expressPayEnabled && resp.detail.isCardPayment) {
+    if (resp.expressPayEnabled && resp.details.isCardPayment) {
         if (document.getElementById('save-card-checkbox').checked) {
             const merchantCustomEventProvideDetails = new CustomEvent(
                 GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail,
