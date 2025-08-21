@@ -13,10 +13,11 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Global Payments end-to-end with GP-API example</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://js.globalpay.com/4.1.13/globalpayments.js"></script>
+    <script src="https://js-cert.globalpay.com/4.1.13/globalpayments.js"></script>
     <script src="globalpayments-3ds.js"></script>
     <script>
         let accessToken = "<?= $accessToken ?>";
+        let origin = "<?= $_SERVER['HTTP_ORIGIN'] ?>";
     </script>
     <script defer src="main.js"></script>
 </head>
@@ -32,6 +33,7 @@
                 </label>
             </div>
             <!-- Target for the credit card form -->
+            <!-- <div id="digital-wallet-form"></div> -->
             <div id="credit-card"></div>
         </form>
 </div>

@@ -5,6 +5,14 @@ GlobalPayments.configure({
     apiVersion: "2021-03-22",
     account: "TRA_1366cd0db8c14fffb130ab49be84d944",
     apms: {
+        // currencyCode: 'EUR',
+        // countryCode: 'IE',
+        // allowedCardNetworks: [
+        //     GlobalPayments.enums.CardNetwork.Visa,
+        //     GlobalPayments.enums.CardNetwork.Mastercard,
+        //     GlobalPayments.enums.CardNetwork.Amex,
+        //     GlobalPayments.enums.CardNetwork.Discover,
+        // ],
         nonCardPayments: {
             allowedPaymentMethods: [
                 {
@@ -16,8 +24,8 @@ GlobalPayments.configure({
     },
     expressPay: {
         enabled: true,
-        cancelUri: "http://localhost:8001/cancel.php",
-        paymentUri: "http://localhost:8001/authorization.php",
+        cancelUri: origin + "/cancel.php",
+        paymentUri: origin + "/authorization.php",
         isShippingRequired: true,
         payButtonLabel: "",
     },
@@ -27,7 +35,8 @@ GlobalPayments.configure({
 // Create Form
 const cardForm = GlobalPayments.creditCard.form("#credit-card", {
     amount: "60",
-    style: "gp-default2"
+    style: "gp-default2",
+    apms: [],
 });
 // form-level event handlers. examples:
 cardForm.ready(() => {
@@ -140,6 +149,28 @@ cardForm.ready(() => {
     });
 });
 
+cardForm.on(GlobalPayments.enums.ApmEvents.PaymentMethodSelection, paymentProviderData => {
+    const {
+        provider,
+        countryCode,
+        currencyCode,
+        bankName,
+        acquirer,
+        redirectUrl,
+    } = paymentProviderData;
+
+    let detail = {};
+
+    switch (provider) {
+        case GlobalPayments.enums.ApmProviders.ExpressPay:
+            const merchantCustomEventProvideDetails = new CustomEvent(GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail, {
+                detail: { redirectUrl }
+            });
+            window.dispatchEvent(merchantCustomEventProvideDetails);
+            break;
+    }
+})
+
 cardForm.on("token-success", async (resp) => {
     console.log(resp);
     if (resp.expressPayEnabled) {
@@ -149,7 +180,7 @@ cardForm.on("token-success", async (resp) => {
                 detail: resp,
             }
         );
-        window.dispatchEvent(merchantCustomEventProvideDetails);
+        // window.dispatchEvent(merchantCustomEventProvideDetails);
         return;
     }
 
