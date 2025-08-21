@@ -169,17 +169,15 @@ cardForm.on(GlobalPayments.enums.ApmEvents.PaymentMethodSelection, paymentProvid
 
 cardForm.on("token-success", async (resp) => {
     console.log(resp);
-    if (resp.expressPayEnabled && resp.details.isCardPayment) {
-        if (document.getElementById('save-card-checkbox').checked) {
-            const merchantCustomEventProvideDetails = new CustomEvent(
-                GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail,
-                {
-                    detail: resp,
-                }
-            );
-            window.dispatchEvent(merchantCustomEventProvideDetails);
-            return;
-        }
+    if (resp.expressPayEnabled && document.getElementById('save-card-checkbox').checked) {
+        const merchantCustomEventProvideDetails = new CustomEvent(
+            GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail,
+            {
+                detail: resp,
+            }
+        );
+        window.dispatchEvent(merchantCustomEventProvideDetails);
+        return;
     }
 
     const skip3ds = document.querySelector('#skip-3ds');
