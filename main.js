@@ -178,6 +178,7 @@ cardForm.on("token-success", async (resp) => {
                 }
             );
             window.dispatchEvent(merchantCustomEventProvideDetails);
+            return;
         }
     }
 
