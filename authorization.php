@@ -42,10 +42,43 @@ $config->merchantContactUrl = "https://www.example.com/about";
 $config->challengeNotificationUrl =  'https://eo8tvks4h47e12.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); // $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
 ServicesContainer::configureService($config);
 
+// possible GET params from ExpressPay with examples
+// [
+// // details
+// atob('eyJwaG9uZUNvdW50cnlDb2RlIjoiKzEiLCJiaWxsaW5nQ291bnRyeSI6IlVTIiwiZW1haWwiOiJzaGFuZUBzaGFuZWxvZ3Nkb24uY29tIiwicGhvbmVOdW1iZXIiOiI1NTU1NTU1NTU1IiwiYmlsbGluZ0FkZHJlc3MiOiIxIGhlYXJ0bGFuZCB3YXksIGplZmZlcnNvbnZpbGxlLCBJTiw0NzEzMCIsInNoaXBwaW5nQWRkcmVzcyI6IjEgaGVhcnRsYW5kIHdheSwgamVmZmVyc29udmlsbGUsIElOLDQ3MTMwIiwic2hpcHBpbmdBZGRyZXNzTmFtZSI6InNoYW5lIGxvZ3Nkb24iLCJzaGlwcGluZ0NvdW50cnkiOiJVUyIsIm5hbWVPbkNhcmQiOiJzaGFuZSBsb2dzZG9uIiwicGF5bWVudFRva2VuIjoiUE1UX2E4NmMwNDIyLTBjZGEtNGY4Ny04NjhiLWUxMmQwYTdmNzcyZiIsIm1hc2tlZENhcmROdW1iZXIiOiJYWFhYWFhYWFhYWFg0MjQyIiwiZXhwaXJ5TW9udGgiOiIxMiIsImV4cGlyeVllYXIiOiIyMDMwIiwiY2FyZEJyYW5kIjoidmlzYSJ9'),
+// // {"phoneCountryCode":"+1","billingCountry":"US","email":"shane@shanelogsdon.com","phoneNumber":"5555555555","billingAddress":"1 heartland way, jeffersonville, IN,47130","shippingAddress":"1 heartland way, jeffersonville, IN,47130","shippingAddressName":"shane logsdon","shippingCountry":"US","nameOnCard":"shane logsdon","paymentToken":"PMT_a86c0422-0cda-4f87-868b-e12d0a7f772f","maskedCardNumber":"XXXXXXXXXXXX4242","expiryMonth":"12","expiryYear":"2030","cardBrand":"visa"}
+// // notifications
+// atob('eyJyZXR1cm5VcmwiOiJodHRwOi8vbG9jYWxob3N0OjgwMDEvYXV0aG9yaXphdGlvbi5waHAiLCJjYW5jZWxVcmwiOiJodHRwOi8vbG9jYWxob3N0OjgwMDEvY2FuY2VsLnBocCJ9'),
+// // {"returnUrl":"http://localhost:8001/authorization.php","cancelUrl":"http://localhost:8001/cancel.php"}
+// // options
+// atob('eyJpc1NoaXBwaW5nUmVxdWlyZWQiOnRydWUsInBheUJ1dHRvbkxhYmVsIjoiIn0='),
+// // {"isShippingRequired":true,"payButtonLabel":""}
+// // merchantInfo
+// atob('eyJtZXJjaGFudElkIjoiTUVSXzgzMGU5ZTdiZGU0YTRmYjBiNjdmYTkyYjZiZTk1NDU0In0='),
+// // {"merchantId":"MER_830e9e7bde4a4fb0b67fa92b6be95454"}
+// ]
+
 if (!empty($_GET['details'])) {
     $details = json_decode(base64_decode($_GET['details']));
-    print_r($details);
-    exit;
+    console_log($details);
+    // {
+    //     "phoneCountryCode":"+1",
+    //     "billingCountry":"US",
+    //     "email":"shane@shanelogsdon.com",
+    //     "phoneNumber":"5555555555",
+    //     "billingAddress":"1 heartland way, jeffersonville, IN,47130",
+    //     "shippingAddress":"1 heartland way, jeffersonville, IN,47130",
+    //     "shippingAddressName":"shane logsdon",
+    //     "shippingCountry":"US",
+    //     "nameOnCard":"shane logsdon",
+    //     "paymentToken":"PMT_a86c0422-0cda-4f87-868b-e12d0a7f772f",
+    //     "maskedCardNumber":"XXXXXXXXXXXX4242",
+    //     "expiryMonth":"12",
+    //     "expiryYear":"2030",
+    //     "cardBrand":"visa"
+    // }
+    $paymentToken = $details['paymentToken'];
+    $skip3ds = true;
 }
 
 ?>

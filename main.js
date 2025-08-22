@@ -4,24 +4,24 @@ GlobalPayments.configure({
     env: "sandbox", // or "production"
     apiVersion: "2021-03-22",
     account: "TRA_1366cd0db8c14fffb130ab49be84d944",
-    apms: {
-        // currencyCode: 'EUR',
-        // countryCode: 'IE',
-        // allowedCardNetworks: [
-        //     GlobalPayments.enums.CardNetwork.Visa,
-        //     GlobalPayments.enums.CardNetwork.Mastercard,
-        //     GlobalPayments.enums.CardNetwork.Amex,
-        //     GlobalPayments.enums.CardNetwork.Discover,
-        // ],
-        nonCardPayments: {
-            allowedPaymentMethods: [
-                {
-                    provider: GlobalPayments.enums.ApmProviders.ExpressPay,
-                    enabled: true
-                }
-            ]
-        }
-    },
+    // apms: {
+    //     // currencyCode: 'EUR',
+    //     // countryCode: 'IE',
+    //     // allowedCardNetworks: [
+    //     //     GlobalPayments.enums.CardNetwork.Visa,
+    //     //     GlobalPayments.enums.CardNetwork.Mastercard,
+    //     //     GlobalPayments.enums.CardNetwork.Amex,
+    //     //     GlobalPayments.enums.CardNetwork.Discover,
+    //     // ],
+    //     nonCardPayments: {
+    //         allowedPaymentMethods: [
+    //             {
+    //                 provider: GlobalPayments.enums.ApmProviders.ExpressPay,
+    //                 enabled: true
+    //             }
+    //         ]
+    //     }
+    // },
     expressPay: {
         enabled: true,
         cancelUri: origin + "/cancel.php",
@@ -36,7 +36,7 @@ GlobalPayments.configure({
 const cardForm = GlobalPayments.creditCard.form("#credit-card", {
     amount: "60",
     style: "gp-default2",
-    apms: [],
+    // apms: [],
 });
 // form-level event handlers. examples:
 cardForm.ready(() => {
@@ -169,16 +169,16 @@ cardForm.on(GlobalPayments.enums.ApmEvents.PaymentMethodSelection, paymentProvid
 
 cardForm.on("token-success", async (resp) => {
     console.log(resp);
-    if (resp.expressPayEnabled && document.getElementById('save-card-checkbox').checked) {
-        const merchantCustomEventProvideDetails = new CustomEvent(
-            GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail,
-            {
-                detail: resp,
-            }
-        );
-        window.dispatchEvent(merchantCustomEventProvideDetails);
-        return;
-    }
+    // if (resp.expressPayEnabled && document.getElementById('save-card-checkbox').checked) {
+    //     const merchantCustomEventProvideDetails = new CustomEvent(
+    //         GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail,
+    //         {
+    //             detail: resp,
+    //         }
+    //     );
+    //     window.dispatchEvent(merchantCustomEventProvideDetails);
+    //     return;
+    // }
 
     const skip3ds = document.querySelector('#skip-3ds');
     if (!skip3ds.checked) {

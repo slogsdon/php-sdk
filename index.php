@@ -13,7 +13,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Global Payments end-to-end with GP-API example</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://js-cert.globalpay.com/4.1.13/globalpayments.js"></script>
+    <script src="https://js-cert.globalpay.com/4.1.15/globalpayments.js"></script>
     <script src="globalpayments-3ds.js"></script>
     <script>
         let accessToken = "<?= $accessToken ?>";
@@ -28,7 +28,7 @@
         <form id="payment-form" method="post">
             <div>
                 <label>
-                    <input type="checkbox" name="skip-3ds" id="skip-3ds" />
+                    <input type="checkbox" name="skip-3ds" id="skip-3ds" checked="checked" />
                     <span>Skip 3DS</span>
                 </label>
             </div>
