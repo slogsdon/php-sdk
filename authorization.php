@@ -16,13 +16,13 @@ use GlobalPayments\Api\Entities\Enums\Secure3dStatus;
 use GlobalPayments\Api\PaymentMethods\CreditCardData;
 
 $requestData = $_REQUEST;
-$serverTransactionId = $requestData['serverTransactionId'];
-$paymentToken = $requestData['tokenResponse'];
+$serverTransactionId = !empty($requestData['serverTransactionId']) ? $requestData['serverTransactionId'] : null;
+$paymentToken = !empty($requestData['tokenResponse']) ? $requestData['tokenResponse'] : null;
 $skip3ds = !empty($requestData['skip-3ds']);
 
 function console_log($data)
 {
-    $data = htmlspecialchars($data, ENT_NOQUOTES);
+    $data = htmlspecialchars(json_encode($data), ENT_NOQUOTES);
     echo '<script>';
     echo 'if(' . $data . ') {';
     echo 'console.log(' . json_encode($data) . ')';
@@ -37,9 +37,9 @@ $config->appKey = GenerateToken::APP_KEY;
 $config->environment = Environment::TEST;
 $config->country = 'IE';
 $config->channel = Channel::CardNotPresent;
-$config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); //$_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';;
+$config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=' . str_replace('https://', '', !empty($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : ''); //$_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';;
 $config->merchantContactUrl = "https://www.example.com/about";
-$config->challengeNotificationUrl =  'https://eo8tvks4h47e12.m.pipedream.net/?host=' . str_replace('https://', '', $_SERVER['HTTP_ORIGIN']); // $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
+$config->challengeNotificationUrl =  'https://eo8tvks4h47e12.m.pipedream.net/?host=' . str_replace('https://', '', !empty($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : ''); // $_SERVER['HTTP_ORIGIN'] . '/challengeNotificationUrl.php';
 ServicesContainer::configureService($config);
 
 // possible GET params from ExpressPay with examples
@@ -77,7 +77,7 @@ if (!empty($_GET['details'])) {
     //     "expiryYear":"2030",
     //     "cardBrand":"visa"
     // }
-    $paymentToken = $details['paymentToken'];
+    $paymentToken = $details->paymentToken;
     $skip3ds = true;
 }
 

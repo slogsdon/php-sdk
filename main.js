@@ -24,8 +24,8 @@ GlobalPayments.configure({
     // },
     expressPay: {
         enabled: true,
-        cancelUri: origin + "/cancel.php",
-        paymentUri: origin + "/authorization.php",
+        cancelUri: window.location.origin + "/cancel.php",
+        paymentUri: window.location.origin + "/authorization.php",
         isShippingRequired: true,
         payButtonLabel: "",
     },
