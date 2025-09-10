@@ -13,7 +13,7 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Global Payments end-to-end with GP-API example</title>
     <link rel="stylesheet" href="styles.css" />
-    <script src="https://js-cert.globalpay.com/4.1.17/globalpayments.js"></script>
+    <script src="https://js-cert.globalpay.com/4.1.18/globalpayments.js"></script>
     <script src="globalpayments-3ds.js"></script>
     <script>
         let accessToken = "<?= $accessToken ?>";

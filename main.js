@@ -29,7 +29,7 @@ GlobalPayments.configure({
         isShippingRequired: true,
         payButtonLabel: "",
     },
-    fieldValidation: true,
+    fieldValidation: { enabled: true },
 });
 
 // Create Form
@@ -160,7 +160,7 @@ cardForm.on(GlobalPayments.enums.ApmEvents.PaymentMethodSelection, paymentProvid
     switch (provider) {
         case GlobalPayments.enums.ApmProviders.ExpressPay:
             const merchantCustomEventProvideDetails = new CustomEvent(GlobalPayments.enums.ExpressPayEvents.ExpressPayActionDetail, {
-                detail: { redirectUrl }
+                detail: { redirectUrl, provider }
             });
             window.dispatchEvent(merchantCustomEventProvideDetails);
             break;
