@@ -14,7 +14,7 @@ class GenerateToken
     // const APP_KEY = 'zCFrbrn0NKly9sB4';
 
     const APP_ID = 'PKTOLb3S8eY9q6mUvpFYXMjYpC2YXdwu';
-    const APP_KEY = '41Mq6JIQnwFUwgJ8';
+    const APP_KEY = '41Mq6JlQnwFUwgJ8';
 
     private static $instance = null;
     private $accessToken;
