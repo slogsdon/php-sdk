@@ -13,8 +13,8 @@ class GenerateToken
     // const APP_ID = 'UJqPrAhrDkGzzNoFInpzKqoI8vfZtGRV';
     // const APP_KEY = 'zCFrbrn0NKly9sB4';
 
-    const APP_ID = 'bvKLJsu6vYC9zxX2BpOgNK95kbboP3Uw';
-    const APP_KEY = '7aH9QlA3yVFwpESQ';
+    const APP_ID = 'PKTOLb3S8eY9q6mUvpFYXMjYpC2YXdwu';
+    const APP_KEY = '41Mq6JIQnwFUwgJ8';
 
     private static $instance = null;
     private $accessToken;
