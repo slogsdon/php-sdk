@@ -5,8 +5,8 @@ GlobalPayments.configure({
     apiVersion: "2021-03-22",
     account: "TRA_1366cd0db8c14fffb130ab49be84d944",
     // apms: {
-    //     // currencyCode: 'EUR',
-    //     // countryCode: 'IE',
+    //     // currencyCode: 'USD',
+    //     // countryCode: 'US',
     //     // allowedCardNetworks: [
     //     //     GlobalPayments.enums.CardNetwork.Visa,
     //     //     GlobalPayments.enums.CardNetwork.Mastercard,
@@ -245,7 +245,7 @@ async function start3DS(token){
                 methodUrlComplete: true,
                 tokenResponse: token,
                 order: {
-                    currency: 'EUR',
+                    currency: 'USD',
                     amount: '100'
                 }
             });

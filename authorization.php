@@ -35,7 +35,7 @@ $config = new GpApiConfig();
 $config->appId = GenerateToken::APP_ID;
 $config->appKey = GenerateToken::APP_KEY;
 $config->environment = Environment::TEST;
-$config->country = 'IE';
+$config->country = 'US';
 $config->channel = Channel::CardNotPresent;
 $config->methodNotificationUrl = 'https://eowdgj59t49mm2z.m.pipedream.net/?host=' . str_replace('https://', '', !empty($_SERVER['HTTP_ORIGIN']) ? $_SERVER['HTTP_ORIGIN'] : ''); //$_SERVER['HTTP_ORIGIN'] . '/methodNotificationUrl.php';;
 $config->merchantContactUrl = "https://www.example.com/about";
@@ -148,7 +148,7 @@ if (!empty($_GET['details'])) {
         // proceed to authorization with liability shift
         try {
             $response = $paymentMethod->charge(100)
-                ->withCurrency('EUR')
+                ->withCurrency('USD')
                 ->execute();
         } catch (ApiException $e) {
             // TODO: Add your error handling here
@@ -157,6 +157,18 @@ if (!empty($_GET['details'])) {
         if (!empty($response)) {
             $transactionId =  $response->transactionId;
             $transactionStatus =  $response->responseMessage;
+        }
+    }
+
+    foreach (['details', 'notifications', 'options', 'merchantInfo'] as $var) {
+        if (!empty($_GET[$var])) {
+            $data = json_decode(base64_decode($_GET[$var]));
+            ?>
+            <p>Express Pay: <?= $var ?></p>
+            <pre>
+                <?= print_r($data, true) ?>
+            </pre>
+            <?php
         }
     }
     ?>
